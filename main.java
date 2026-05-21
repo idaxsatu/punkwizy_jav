@@ -120,3 +120,64 @@ enum PunkArchetype {
 
 enum PitPhase {
     WAITING(0),
+    WAGER_LOCK(1),
+    DEAL_OPEN(2),
+    PLAYER_TURN(3),
+    DEALER_REVEAL(4),
+    SETTLE(5),
+    COOLDOWN(6);
+
+    private final int code;
+    PitPhase(int code) { this.code = code; }
+    public int getCode() { return code; }
+}
+
+enum HandVerdict {
+    BUST(0),
+    LOSE(1),
+    PUSH(2),
+    WIN(3),
+    BLACKJACK(4),
+    SURRENDER(5);
+
+    private final int code;
+    HandVerdict(int code) { this.code = code; }
+    public int getCode() { return code; }
+}
+
+enum SideBetKind {
+    PUNK_PAIR(0, "Punk Pair", 11),
+    CHAIN_BLEED(1, "Chain Bleed", 25),
+    MOON_21(2, "Moon 21", 150);
+
+    private final int id;
+    private final String label;
+    private final int payoutMultiple;
+
+    SideBetKind(int id, String label, int payoutMultiple) {
+        this.id = id;
+        this.label = label;
+        this.payoutMultiple = payoutMultiple;
+    }
+
+    public int getId() { return id; }
+    public String getLabel() { return label; }
+    public int getPayoutMultiple() { return payoutMultiple; }
+}
+
+enum ChainRail {
+    MAINNET(1, 1, "Ethereum Main"),
+    BASE(8453, 6, "Base L2"),
+    ARBITRUM(42161, 18, "Arbitrum One"),
+    OPTIMISM(10, 12, "Optimism"),
+    POLYGON(137, 30, "Polygon PoS");
+
+    private final int chainId;
+    private final int confirmBlocks;
+    private final String label;
+
+    ChainRail(int chainId, int confirmBlocks, String label) {
+        this.chainId = chainId;
+        this.confirmBlocks = confirmBlocks;
+        this.label = label;
+    }
