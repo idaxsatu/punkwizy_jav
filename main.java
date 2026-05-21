@@ -547,3 +547,64 @@ final class PwzTreasuryLedger {
     void applyRake(BigDecimal gross) {
         BigDecimal rake = gross.multiply(BigDecimal.valueOf(PwzVenueConfig.HOUSE_EDGE_BPS))
                 .divide(BigDecimal.valueOf(PwzVenueConfig.BPS_DENOM), 8, RoundingMode.HALF_UP);
+        BigDecimal capped = rake.min(gross.multiply(BigDecimal.valueOf(PwzVenueConfig.RAKE_CAP_BPS))
+                .divide(BigDecimal.valueOf(PwzVenueConfig.BPS_DENOM), 8, RoundingMode.HALF_UP));
+        rakeAccrued = rakeAccrued.add(capped);
+        houseBalance = houseBalance.add(capped);
+        bus.emitTreasury("RAKE", capped, PwzVenueConfig.ADDRESS_RAKE_VAULT);
+        audit("RAKE+" + capped);
+    }
+
+    void payPlayer(BigDecimal eth) {
+        if (houseBalance.compareTo(eth) < 0) {
+            rewardsPool = rewardsPool.subtract(eth.subtract(houseBalance));
+            houseBalance = BigDecimal.ZERO;
+        } else {
+            houseBalance = houseBalance.subtract(eth);
+        }
+        audit("PAYOUT-" + eth);
+    }
+
+    void sideBetSink(BigDecimal eth, boolean win, SideBetKind kind) {
+        if (win) {
+            BigDecimal payout = eth.multiply(BigDecimal.valueOf(kind.getPayoutMultiple()));
+            sidePool = sidePool.subtract(payout);
+            payPlayer(payout);
+            bus.emitTreasury("SIDE_WIN", payout, PwzVenueConfig.ADDRESS_SIDE_POOL);
+        } else {
+            sidePool = sidePool.add(eth);
+            bus.emitTreasury("SIDE_LOSS", eth, PwzVenueConfig.ADDRESS_SIDE_POOL);
+        }
+    }
+
+    private void audit(String line) {
+        String ts = DateTimeFormatter.ISO_INSTANT.withZone(ZoneOffset.UTC).format(Instant.now());
+        audit.add(moveSeq.incrementAndGet() + "|" + ts + "|" + line);
+        if (audit.size() > PwzVenueConfig.HISTORY_CAP) audit.remove(0);
+    }
+
+    public BigDecimal getHouseBalance() { return houseBalance; }
+    public BigDecimal getRakeAccrued() { return rakeAccrued; }
+    public List<String> getAuditTail(int n) {
+        int from = Math.max(0, audit.size() - n);
+        return new ArrayList<>(audit.subList(from, audit.size()));
+    }
+}
+
+// ======================== Side bets ========================
+
+final class PwzSideBetResolver {
+    boolean resolvePunkPair(PunkHand hand) {
+        if (hand.getCards().size() < 2) return false;
+        PunkCard a = hand.getCards().get(0);
+        PunkCard b = hand.getCards().get(1);
+        return a.getRank() == b.getRank();
+    }
+
+    boolean resolveChainBleed(PunkHand hand) {
+        if (hand.getCards().size() < 2) return false;
+        return hand.getCards().get(0).getSuit() == hand.getCards().get(1).getSuit();
+    }
+
+    boolean resolveMoon21(PunkHand player, PunkHand dealer) {
+        return player.isBlackjack() && !dealer.isBlackjack();
