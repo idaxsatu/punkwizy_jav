@@ -59,3 +59,64 @@ enum PunkRank {
     TEN(10, "10", 10, 10),
     JACK(11, "J", 10, 10),
     QUEEN(12, "Q", 10, 10),
+    KING(13, "K", 10, 10);
+
+    private final int code;
+    private final String label;
+    private final int softValue;
+    private final int hardValue;
+
+    PunkRank(int code, String label, int softValue, int hardValue) {
+        this.code = code;
+        this.label = label;
+        this.softValue = softValue;
+        this.hardValue = hardValue;
+    }
+
+    public int getCode() { return code; }
+    public String getLabel() { return label; }
+    public int softValue() { return softValue; }
+    public int hardValue() { return hardValue; }
+    public boolean isTenCard() { return hardValue == 10; }
+    public boolean isAce() { return this == ACE; }
+
+    public static PunkRank fromCode(int c) {
+        for (PunkRank r : values()) if (r.code == c) return r;
+        throw new PwzRuleException("PWZ_RANK", "Unknown rank code " + c);
+    }
+}
+
+enum PunkArchetype {
+    STREET_DEALER(0, 0, "Street Dealer", 1.00),
+    MOHAWK_RIDER(1, 120, "Mohawk Rider", 1.04),
+    SPIKE_COLLAR(2, 250, "Spike Collar", 1.07),
+    CHAIN_VEST(3, 500, "Chain Vest", 1.10),
+    NEON_KING(4, 900, "Neon King", 1.14),
+    CHAOS_ACE(5, 1500, "Chaos Ace", 1.18);
+
+    private final int id;
+    private final int xpGate;
+    private final String title;
+    private final double payoutBoost;
+
+    PunkArchetype(int id, int xpGate, String title, double payoutBoost) {
+        this.id = id;
+        this.xpGate = xpGate;
+        this.title = title;
+        this.payoutBoost = payoutBoost;
+    }
+
+    public int getId() { return id; }
+    public int getXpGate() { return xpGate; }
+    public String getTitle() { return title; }
+    public double getPayoutBoost() { return payoutBoost; }
+
+    public static PunkArchetype forXp(int xp) {
+        PunkArchetype best = STREET_DEALER;
+        for (PunkArchetype a : values()) if (xp >= a.xpGate) best = a;
+        return best;
+    }
+}
+
+enum PitPhase {
+    WAITING(0),
