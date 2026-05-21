@@ -608,3 +608,64 @@ final class PwzSideBetResolver {
 
     boolean resolveMoon21(PunkHand player, PunkHand dealer) {
         return player.isBlackjack() && !dealer.isBlackjack();
+    }
+}
+
+// ======================== Fairness digest ========================
+
+final class PwzCommitReveal {
+    private final byte[] seed;
+    private final String commitHash;
+
+    PwzCommitReveal(SecureRandom rng) {
+        seed = new byte[32];
+        rng.nextBytes(seed);
+        commitHash = sha256Hex(seed);
+    }
+
+    public String getCommitHash() { return commitHash; }
+    public byte[] getSeed() { return Arrays.copyOf(seed, seed.length); }
+
+    static String sha256Hex(byte[] data) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] dig = md.digest(data);
+            StringBuilder sb = new StringBuilder("0x");
+            for (byte b : dig) sb.append(String.format("%02x", b));
+            return sb.toString();
+        } catch (Exception e) {
+            throw new PwzRuleException("PWZ_HASH", e.getMessage());
+        }
+    }
+
+    String mixRound(long roundId, String playerId) {
+        String payload = PwzVenueConfig.DOMAIN_SEPARATOR + "|" + roundId + "|" + playerId + "|" + commitHash;
+        return sha256Hex(payload.getBytes(StandardCharsets.UTF_8));
+    }
+}
+
+// ======================== Pit engine ========================
+
+final class PwzBlackjackPit {
+    private final SecureRandom rng;
+    private final PwzPitEventBus bus;
+    private final PwzTreasuryLedger treasury;
+    private final PwzSideBetResolver sideResolver;
+    private final Map<String, PunkSeatProfile> seats = new ConcurrentHashMap<>();
+    private final PwzLeaderboard leaderboard = new PwzLeaderboard();
+    private final AtomicLong roundSeq = new AtomicLong(0);
+    private PunkShoe shoe;
+    private PitPhase phase = PitPhase.WAITING;
+    private boolean paused;
+    private final String houseAddr;
+    private final String oracleAddr;
+    private final ChainRail rail;
+
+    PwzBlackjackPit(String houseAddr, String oracleAddr, ChainRail rail, SecureRandom rng) {
+        this.houseAddr = houseAddr;
+        this.oracleAddr = oracleAddr;
+        this.rail = rail;
+        this.rng = rng;
+        this.bus = new PwzPitEventBus();
+        this.treasury = new PwzTreasuryLedger(bus);
+        this.sideResolver = new PwzSideBetResolver();
