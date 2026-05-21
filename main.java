@@ -486,3 +486,64 @@ final class PunkSeatProfile {
 final class PwzLeaderboardEntry implements Comparable<PwzLeaderboardEntry> {
     final String playerId;
     final BigDecimal netEth;
+    final int xp;
+    final long updatedEpoch;
+
+    PwzLeaderboardEntry(String playerId, BigDecimal netEth, int xp, long updatedEpoch) {
+        this.playerId = playerId;
+        this.netEth = netEth;
+        this.xp = xp;
+        this.updatedEpoch = updatedEpoch;
+    }
+
+    @Override
+    public int compareTo(PwzLeaderboardEntry o) {
+        int c = o.netEth.compareTo(netEth);
+        if (c != 0) return c;
+        return Integer.compare(o.xp, xp);
+    }
+}
+
+final class PwzLeaderboard {
+    private final PriorityQueue<PwzLeaderboardEntry> heap =
+            new PriorityQueue<>(Comparator.reverseOrder());
+
+    synchronized void upsert(PunkSeatProfile profile) {
+        PwzLeaderboardEntry e = new PwzLeaderboardEntry(
+                profile.getPlayerId(),
+                profile.netEth(),
+                profile.getXp(),
+                Instant.now().getEpochSecond());
+        heap.offer(e);
+        while (heap.size() > PwzVenueConfig.LEADERBOARD_CAP) heap.poll();
+    }
+
+    synchronized List<PwzLeaderboardEntry> top(int n) {
+        return heap.stream().sorted().limit(n).collect(Collectors.toList());
+    }
+}
+
+// ======================== Treasury ========================
+
+final class PwzTreasuryLedger {
+    private BigDecimal houseBalance = BigDecimal.ZERO;
+    private BigDecimal rakeAccrued = BigDecimal.ZERO;
+    private BigDecimal rewardsPool = BigDecimal.ZERO;
+    private BigDecimal sidePool = BigDecimal.ZERO;
+    private final AtomicLong moveSeq = new AtomicLong(0);
+    private final List<String> audit = new ArrayList<>();
+    private final PwzPitEventBus bus;
+
+    PwzTreasuryLedger(PwzPitEventBus bus) {
+        this.bus = bus;
+    }
+
+    void creditHouse(BigDecimal eth, String lane) {
+        houseBalance = houseBalance.add(eth);
+        bus.emitTreasury(lane, eth, PwzVenueConfig.ADDRESS_HOUSE);
+        audit("HOUSE+" + eth + "@" + lane);
+    }
+
+    void applyRake(BigDecimal gross) {
+        BigDecimal rake = gross.multiply(BigDecimal.valueOf(PwzVenueConfig.HOUSE_EDGE_BPS))
+                .divide(BigDecimal.valueOf(PwzVenueConfig.BPS_DENOM), 8, RoundingMode.HALF_UP);
