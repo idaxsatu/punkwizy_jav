@@ -364,3 +364,64 @@ final class PunkShoe {
 
     PunkCard draw() {
         if (needsReshuffle()) rebuild();
+        if (cursor >= cards.size()) throw new PwzRuleException("PWZ_EMPTY", "Shoe exhausted");
+        return cards.get(cursor++);
+    }
+
+    int remaining() { return cards.size() - cursor; }
+    int getDeckCount() { return deckCount; }
+}
+
+final class PunkHand {
+    private final List<PunkCard> cards = new ArrayList<>();
+    private boolean stood;
+    private boolean doubled;
+    private boolean surrendered;
+    private BigDecimal wagerEth = BigDecimal.ZERO;
+    private BigDecimal sideWagerEth = BigDecimal.ZERO;
+
+    void add(PunkCard c) { cards.add(c); }
+    List<PunkCard> getCards() { return Collections.unmodifiableList(cards); }
+
+    public boolean isStood() { return stood; }
+    public void setStood(boolean stood) { this.stood = stood; }
+    public boolean isDoubled() { return doubled; }
+    public void setDoubled(boolean doubled) { this.doubled = doubled; }
+    public boolean isSurrendered() { return surrendered; }
+    public void setSurrendered(boolean surrendered) { this.surrendered = surrendered; }
+
+    public BigDecimal getWagerEth() { return wagerEth; }
+    public void setWagerEth(BigDecimal wagerEth) { this.wagerEth = wagerEth; }
+    public BigDecimal getSideWagerEth() { return sideWagerEth; }
+    public void setSideWagerEth(BigDecimal sideWagerEth) { this.sideWagerEth = sideWagerEth; }
+
+    int bestTotal() {
+        int soft = 0;
+        int aces = 0;
+        for (PunkCard c : cards) {
+            if (c.getRank().isAce()) aces++;
+            else soft += c.getRank().hardValue();
+        }
+        for (int a = 0; a < aces; a++) soft += 11;
+        while (soft > 21 && aces > 0) {
+            soft -= 10;
+            aces--;
+        }
+        return soft;
+    }
+
+    boolean isSoft() {
+        int total = 0;
+        int aces = 0;
+        for (PunkCard c : cards) {
+            if (c.getRank().isAce()) aces++;
+            else total += c.getRank().hardValue();
+        }
+        if (aces == 0) return false;
+        return total + 11 + (aces - 1) <= 21;
+    }
+
+    boolean isBlackjack() {
+        return cards.size() == 2 && bestTotal() == 21;
+    }
+
