@@ -242,3 +242,64 @@ final class PwzRuleException extends RuntimeException {
         super(detail);
         this.pwzCode = pwzCode;
     }
+
+    public String getPwzCode() { return pwzCode; }
+}
+
+final class PwzWagerException extends RuntimeException {
+    private final String stakeCode;
+
+    PwzWagerException(String stakeCode, String detail) {
+        super(detail);
+        this.stakeCode = stakeCode;
+    }
+
+    public String getStakeCode() { return stakeCode; }
+}
+
+final class PwzPauseException extends RuntimeException {
+    PwzPauseException(String detail) { super(detail); }
+}
+
+// ======================== Events ========================
+
+interface PwzPitListener {
+    void onRoundOpened(long roundId, String playerId);
+    void onCardDealt(long roundId, String seat, PunkRank rank, PunkSuit suit);
+    void onVerdict(long roundId, HandVerdict verdict, BigDecimal deltaEth);
+    void onTreasuryMove(String lane, BigDecimal amountEth, String targetAddr);
+    void onPhaseShift(PitPhase phase);
+}
+
+final class PwzPitEventBus {
+    private final List<PwzPitListener> listeners = new ArrayList<>();
+
+    void subscribe(PwzPitListener listener) {
+        if (listener != null) listeners.add(listener);
+    }
+
+    void emitRound(long roundId, String playerId) {
+        for (PwzPitListener l : listeners) l.onRoundOpened(roundId, playerId);
+    }
+
+    void emitCard(long roundId, String seat, PunkRank rank, PunkSuit suit) {
+        for (PwzPitListener l : listeners) l.onCardDealt(roundId, seat, rank, suit);
+    }
+
+    void emitVerdict(long roundId, HandVerdict verdict, BigDecimal delta) {
+        for (PwzPitListener l : listeners) l.onVerdict(roundId, verdict, delta);
+    }
+
+    void emitTreasury(String lane, BigDecimal amount, String target) {
+        for (PwzPitListener l : listeners) l.onTreasuryMove(lane, amount, target);
+    }
+
+    void emitPhase(PitPhase phase) {
+        for (PwzPitListener l : listeners) l.onPhaseShift(phase);
+    }
+}
+
+// ======================== Card model ========================
+
+final class PunkCard {
+    private final PunkRank rank;
