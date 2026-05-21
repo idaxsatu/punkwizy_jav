@@ -181,3 +181,64 @@ enum ChainRail {
         this.confirmBlocks = confirmBlocks;
         this.label = label;
     }
+
+    public int getChainId() { return chainId; }
+    public int getConfirmBlocks() { return confirmBlocks; }
+    public String getLabel() { return label; }
+
+    public static ChainRail byId(int id) {
+        for (ChainRail r : values()) if (r.chainId == id) return r;
+        return MAINNET;
+    }
+}
+
+// ======================== Constants ========================
+
+final class PwzVenueConfig {
+    private PwzVenueConfig() {}
+
+    static final String ADDRESS_HOUSE = "0x1f1C7f55AF1d8CFe4B20DdFe19Ffa2f33BEA7b8C";
+    static final String ADDRESS_FEE_SINK = "0x26386486b7409a6a8D17fAf9A52eDC723Bf2Dca9";
+    static final String ADDRESS_ORACLE = "0xbFd87A10AF48696EbbaAd6eFFc382C54823fdEc4";
+    static final String ADDRESS_RAKE_VAULT = "0xDaF6BBaD2AB5FedEE0fF56E8e5deE362cE02d499";
+    static final String ADDRESS_GUILD = "0xcDDa5ebbD3E6c9B7CD0c9AbDcB0Aa8A1700E49DA";
+    static final String ADDRESS_REWARDS = "0xEA35CF423afCe099Eb8bCaaD4b01Ee2Ed2ddf35c";
+    static final String ADDRESS_PAUSE_GUARD = "0xa057bB4aEFD0AF7eB6CBeaD3BA1BdA826A6f1dca";
+    static final String ADDRESS_SIDE_POOL = "0x3de74FfbeaD47E22ad3Fe236F4cEFcF04A6E18d3";
+    static final String ADDRESS_BRIGADE = "0x731aECB313eA9251FFc49bcbdec6caa9Ca8d1926";
+    static final String ADDRESS_TOURNEY = "0xA6d9EEfA1045D5FffECf9c57d5eae36b979479b9";
+    static final String ADDRESS_BURN_SINK = "0xfAAb0d98EeBB268e5FA90Fe8456b8Ec0eD1dc61d";
+    static final String ADDRESS_REFERRAL = "0xEceCb2CAAc7BEBFccd098b561B59E4E21a4e0620";
+
+    static final String DOMAIN_SEPARATOR = "0xd7dDD5eAd8E0B7e5d7A5c648D3Cc6183B9eBa1cDacF46d11CE7Cbb31Fd011eCd";
+    static final String CHAIN_SALT = "0x9f3A2c1E8b7046D5aF11e0C3B7d92E4f6A8c0D1e2B3f4A5c6D7e8F9a0B1c2D3e4F5";
+
+    static final int BPS_DENOM = 10_000;
+    static final int HOUSE_EDGE_BPS = 185;
+    static final int RAKE_CAP_BPS = 420;
+    static final int BLACKJACK_PAYOUT_BPS = 15_000;
+    static final int STANDARD_WIN_BPS = 20_000;
+    static final int INSURANCE_OFFER_BPS = 5_000;
+    static final int MAX_SHOE_DECKS = 8;
+    static final int MIN_SHOE_DECKS = 2;
+    static final int CUT_CARD_MARGIN = 14;
+    static final int MAX_SPLIT_HANDS = 4;
+    static final int DEALER_STAND_TOTAL = 17;
+    static final int DEALER_SOFT_STAND = 18;
+    static final BigDecimal MIN_WAGER_ETH = new BigDecimal("0.002");
+    static final BigDecimal MAX_WAGER_ETH = new BigDecimal("25");
+    static final BigDecimal MIN_SIDE_ETH = new BigDecimal("0.0005");
+    static final int MAX_ROUNDS_PER_SESSION = 2_400;
+    static final int LEADERBOARD_CAP = 128;
+    static final int HISTORY_CAP = 600;
+}
+
+// ======================== Exceptions ========================
+
+final class PwzRuleException extends RuntimeException {
+    private final String pwzCode;
+
+    PwzRuleException(String pwzCode, String detail) {
+        super(detail);
+        this.pwzCode = pwzCode;
+    }
