@@ -425,3 +425,64 @@ final class PunkHand {
         return cards.size() == 2 && bestTotal() == 21;
     }
 
+    boolean isBust() { return bestTotal() > 21; }
+
+    boolean canSplit() {
+        if (cards.size() != 2) return false;
+        return cards.get(0).getRank().hardValue() == cards.get(1).getRank().hardValue();
+    }
+}
+
+// ======================== Player & stats ========================
+
+final class PunkSeatProfile {
+    private final String playerId;
+    private final String walletHex;
+    private int xp;
+    private int winStreak;
+    private int lossStreak;
+    private BigDecimal lifetimeWon = BigDecimal.ZERO;
+    private BigDecimal lifetimeLost = BigDecimal.ZERO;
+    private final Deque<String> recentRounds = new ArrayDeque<>();
+
+    PunkSeatProfile(String playerId, String walletHex) {
+        this.playerId = playerId;
+        this.walletHex = walletHex;
+    }
+
+    public String getPlayerId() { return playerId; }
+    public String getWalletHex() { return walletHex; }
+    public int getXp() { return xp; }
+    public void addXp(int delta) { xp = Math.max(0, xp + delta); }
+    public int getWinStreak() { return winStreak; }
+    public int getLossStreak() { return lossStreak; }
+
+    void recordOutcome(HandVerdict v, BigDecimal delta) {
+        if (delta.signum() > 0) {
+            winStreak++;
+            lossStreak = 0;
+            lifetimeWon = lifetimeWon.add(delta);
+        } else if (delta.signum() < 0) {
+            lossStreak++;
+            winStreak = 0;
+            lifetimeLost = lifetimeLost.add(delta.abs());
+        }
+        if (v == HandVerdict.BLACKJACK) addXp(40);
+        else if (v == HandVerdict.WIN) addXp(18);
+        else if (v == HandVerdict.PUSH) addXp(4);
+        else addXp(1);
+    }
+
+    void pushHistory(String snippet) {
+        recentRounds.addFirst(snippet);
+        while (recentRounds.size() > 32) recentRounds.removeLast();
+    }
+
+    public List<String> getRecentRounds() { return new ArrayList<>(recentRounds); }
+    public PunkArchetype getArchetype() { return PunkArchetype.forXp(xp); }
+    public BigDecimal netEth() { return lifetimeWon.subtract(lifetimeLost); }
+}
+
+final class PwzLeaderboardEntry implements Comparable<PwzLeaderboardEntry> {
+    final String playerId;
+    final BigDecimal netEth;
